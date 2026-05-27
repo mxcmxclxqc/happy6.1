@@ -562,27 +562,6 @@
             markMusicPaused();
         }
 
-        // 核心破解 1：微信专属后门通道
-        document.addEventListener("WeixinJSBridgeReady", function () {
-            bgMusic.play().then(() => {
-                musicBtn.classList.add('playing');
-            }).catch(e => console.log("微信播放受阻"));
-        }, false);
-
-        // 核心破解 2：手机浏览器全屏幕触摸解锁
-        function forcePlayAudio() {
-            if (bgMusic.paused) {
-                bgMusic.play().then(() => {
-                    musicBtn.classList.add('playing');
-                }).catch(e => console.log("等待手势交互"));
-            }
-            // 触发一次后立即销毁监听，防止重复影响性能
-            document.removeEventListener('touchstart', forcePlayAudio);
-            document.removeEventListener('click', forcePlayAudio);
-        }
-        document.addEventListener('touchstart', forcePlayAudio);
-        document.addEventListener('click', forcePlayAudio);
-
         bgMusic.addEventListener('play', markMusicPlaying);
         bgMusic.addEventListener('pause', markMusicPaused);
         bgMusic.addEventListener('error', () => {
@@ -601,9 +580,24 @@
             }
         }
 
-        musicBtn.addEventListener('touchend', toggleMusic, { passive: false });
-        musicBtn.addEventListener('pointerup', toggleMusic);
         musicBtn.addEventListener('click', toggleMusic);
+
+        function unlockAudioOnMobile() {
+            const p = bgMusic.play();
+            if (p !== undefined) {
+                p.then(() => { bgMusic.pause(); bgMusic.currentTime = 0; }).catch(() => {});
+            }
+            document.removeEventListener('touchstart', unlockAudioOnMobile);
+            document.removeEventListener('touchend',   unlockAudioOnMobile);
+        }
+        document.addEventListener('touchstart', unlockAudioOnMobile, { once: true });
+        document.addEventListener('touchend',   unlockAudioOnMobile, { once: true });
+
+        function revealWithTransition(element) {
+            element.style.display = 'block';
+            element.offsetHeight;
+            requestAnimationFrame(() => element.classList.add('show'));
+        }
 
         // 3. 烟花特效核心代码 (Canvas)
         const canvas = document.getElementById('fireworks-canvas');
@@ -900,7 +894,7 @@
                     setTimeout(type, char === '。' || char === '！' ? 220 : 62);
                 } else {
                     setTimeout(() => endingNote.classList.add('show'), 350);
-                    setTimeout(() => wishMaker.classList.add('show'), 900);
+                    setTimeout(() => revealWithTransition(wishMaker), 900);
                 }
             }
             type();
@@ -958,7 +952,6 @@
             // 等开箱动画结束后展示惊喜
             setTimeout(() => {
                 giftSection.style.display = 'none';
-                surpriseCard.style.display = 'block';
                 
                 // 触发烟花并让卡片弹窗浮现
                 isFireworksActive = true;
@@ -970,17 +963,12 @@
                     fireworkIntensity = 0.75;
                 }, 5200);
                 setTimeout(startTextFirework, 650);
-                setTimeout(() => {
-                    surpriseCard.classList.add('show');
-                    startTypewriter();
-                }, 50);
+                revealWithTransition(surpriseCard);
+                startTypewriter();
             }, 500);
         }
 
-        giftBox.addEventListener('touchend', openGift, { passive: false });
-        giftBox.addEventListener('pointerup', openGift);
         giftBox.addEventListener('click', (event) => {
-            bgMusic.play();
             openGift(event);
         });
 
