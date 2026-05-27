@@ -370,6 +370,28 @@
         .music-btn.playing {
             animation: rotate 4s linear infinite;
         }
+        .music-panel {
+            position: fixed;
+            left: 50%;
+            bottom: 14px;
+            z-index: 110;
+            width: min(88vw, 320px);
+            transform: translateX(-50%);
+            text-align: center;
+            color: #d94f7c;
+            font-size: 0.82rem;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.78);
+            border: 2px solid rgba(255, 179, 198, 0.8);
+            border-radius: 18px;
+            padding: 8px 10px;
+            box-shadow: 0 8px 18px rgba(255, 107, 139, 0.16);
+        }
+        .music-player {
+            width: 100%;
+            height: 32px;
+            margin-top: 5px;
+        }
 
         /* 动画定义 */
         @keyframes floatUp {
@@ -440,7 +462,12 @@
 
     <!-- 背景音乐按钮 -->
     <div class="music-btn" id="musicBtn">🎵</div>
-    <audio id="bgMusic" loop preload="auto" playsinline webkit-playsinline src="obj_wo3DlMOGwrbDjj7DisKw_17555154894_6ff8_d0ee_c8e7_b865888b0eda470ec9ade2a9503274c7.mp3"></audio>
+    <div class="music-panel" id="musicPanel">
+        手机没声音的话，点这里播放音乐
+        <audio class="music-player" id="bgMusic" loop controls preload="metadata" playsinline webkit-playsinline>
+            <source src="obj_wo3DlMOGwrbDjj7DisKw_17555154894_6ff8_d0ee_c8e7_b865888b0eda470ec9ade2a9503274c7.mp3" type="audio/mpeg">
+        </audio>
+    </div>
 
     <!-- 背景漂浮小气泡 -->
     <div class="decorations" id="decorations"></div>
@@ -506,34 +533,58 @@
         }
 
         // 2. 背景音乐逻辑
-        const musicBtn = document.getElementById('musicBtn');
         const bgMusic = document.getElementById('bgMusic');
+        const musicBtn = document.getElementById('musicBtn');
         let isPlaying = false;
 
-        async function startMusic() {
-            if (isPlaying) return;
-            bgMusic.muted = false;
-            bgMusic.volume = 1;
-            bgMusic.load();
-            await bgMusic.play();
+        function markMusicPlaying() {
+            isPlaying = true;
+            musicBtn.classList.add('playing');
         }
 
-        function unlockMusicForMobile() {
-            startMusic().catch(() => {});
+        function markMusicPaused() {
+            isPlaying = false;
+            musicBtn.classList.remove('playing');
+        }
+
+        function startMusic() {
+            if (!bgMusic.paused) {
+                markMusicPlaying();
+                return Promise.resolve();
+            }
+            bgMusic.muted = false;
+            bgMusic.volume = 1;
+            return bgMusic.play().then(markMusicPlaying);
         }
 
         function stopMusic() {
             bgMusic.pause();
+            markMusicPaused();
         }
 
-        bgMusic.addEventListener('play', () => {
-            isPlaying = true;
-            musicBtn.classList.add('playing');
-        });
-        bgMusic.addEventListener('pause', () => {
-            isPlaying = false;
-            musicBtn.classList.remove('playing');
-        });
+        // 核心破解 1：微信专属后门通道
+        document.addEventListener("WeixinJSBridgeReady", function () {
+            bgMusic.play().then(() => {
+                musicBtn.classList.add('playing');
+            }).catch(e => console.log("微信播放受阻"));
+        }, false);
+
+        // 核心破解 2：手机浏览器全屏幕触摸解锁
+        function forcePlayAudio() {
+            if (bgMusic.paused) {
+                bgMusic.play().then(() => {
+                    musicBtn.classList.add('playing');
+                }).catch(e => console.log("等待手势交互"));
+            }
+            // 触发一次后立即销毁监听，防止重复影响性能
+            document.removeEventListener('touchstart', forcePlayAudio);
+            document.removeEventListener('click', forcePlayAudio);
+        }
+        document.addEventListener('touchstart', forcePlayAudio);
+        document.addEventListener('click', forcePlayAudio);
+
+        bgMusic.addEventListener('play', markMusicPlaying);
+        bgMusic.addEventListener('pause', markMusicPaused);
         bgMusic.addEventListener('error', () => {
             console.log('背景音乐加载失败，请确认 mp3 文件和 index.html 在同一文件夹，且文件名完全一致。');
         });
@@ -553,7 +604,6 @@
         musicBtn.addEventListener('touchend', toggleMusic, { passive: false });
         musicBtn.addEventListener('pointerup', toggleMusic);
         musicBtn.addEventListener('click', toggleMusic);
-        document.addEventListener('WeixinJSBridgeReady', unlockMusicForMobile, { once: true });
 
         // 3. 烟花特效核心代码 (Canvas)
         const canvas = document.getElementById('fireworks-canvas');
@@ -929,7 +979,10 @@
 
         giftBox.addEventListener('touchend', openGift, { passive: false });
         giftBox.addEventListener('pointerup', openGift);
-        giftBox.addEventListener('click', openGift);
+        giftBox.addEventListener('click', (event) => {
+            bgMusic.play();
+            openGift(event);
+        });
 
         // 启动绘制循环
         loop();
