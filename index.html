@@ -430,21 +430,7 @@
             animation: rotate 4s linear infinite;
         }
         .music-panel {
-            position: fixed;
-            left: 50%;
-            bottom: 14px;
-            z-index: 110;
-            width: min(88vw, 320px);
-            transform: translateX(-50%);
-            text-align: center;
-            color: #d94f7c;
-            font-size: 0.82rem;
-            font-weight: bold;
-            background: rgba(255, 255, 255, 0.78);
-            border: 2px solid rgba(255, 179, 198, 0.8);
-            border-radius: 18px;
-            padding: 8px 10px;
-            box-shadow: 0 8px 18px rgba(255, 107, 139, 0.16);
+            display: none;
         }
         .music-player {
             width: 100%;
@@ -545,7 +531,7 @@
     <div class="container">
         <!-- 第一步：礼物盒 -->
         <div id="gift-section">
-            <p class="hint-text">To：樊响小朋友<br>愿今天的快乐份额加满 ✨<br>请点开你的六一礼物盒</p>
+            <p class="hint-text">To：樊响小朋友<br>愿今天的快乐份额加满 ✨<br>点开礼物盒，收下今天的小惊喜</p>
             <div class="gift-box shake" id="giftBox">
                 <div class="box-bow"></div>
                 <div class="box-bow-right"></div>
@@ -993,7 +979,12 @@
             }, 3200);
         }
 
+        let isWishCoolingDown = false;
         function makeWish() {
+            if (isWishCoolingDown) return;
+            isWishCoolingDown = true;
+            wishButton.disabled = true;
+
             const wish = wishInput.value.trim();
             wishResult.textContent = wish
                 ? `愿望已放进星星里：${wish}，祝它顺利实现！`
@@ -1003,6 +994,10 @@
             for (let i = 0; i < 4; i++) {
                 setTimeout(launchFirework, i * 180);
             }
+            setTimeout(() => {
+                isWishCoolingDown = false;
+                wishButton.disabled = false;
+            }, 1000);
         }
 
         wishToggle.addEventListener('click', () => {
