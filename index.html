@@ -582,17 +582,6 @@
 
         musicBtn.addEventListener('click', toggleMusic);
 
-        function unlockAudioOnMobile() {
-            const p = bgMusic.play();
-            if (p !== undefined) {
-                p.then(() => { bgMusic.pause(); bgMusic.currentTime = 0; }).catch(() => {});
-            }
-            document.removeEventListener('touchstart', unlockAudioOnMobile);
-            document.removeEventListener('touchend',   unlockAudioOnMobile);
-        }
-        document.addEventListener('touchstart', unlockAudioOnMobile, { once: true });
-        document.addEventListener('touchend',   unlockAudioOnMobile, { once: true });
-
         function revealWithTransition(element) {
             element.style.display = 'block';
             element.offsetHeight;
