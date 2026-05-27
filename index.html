@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>六一快乐！你的专属惊喜</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(180deg, #ffe8f0 0%, #ffd3e2 55%, #ffc4da 100%);
+            font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 背景装饰气泡 */
+        .decorations {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .bubble {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            animation: floatUp 8s infinite ease-in-out;
+        }
+
+        .magic-glow {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 280px;
+            height: 280px;
+            pointer-events: none;
+            z-index: 3;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.35);
+            background:
+                radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,235,140,0.7) 24%, rgba(255,120,175,0.35) 52%, rgba(255,120,175,0) 72%);
+            filter: blur(2px);
+        }
+        .magic-glow.show {
+            animation: glowBurst 1.15s ease-out forwards;
+        }
+
+        /* 烟花 Canvas */
+        #fireworks-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .firework-text {
+            position: fixed;
+            top: 11%;
+            left: 50%;
+            z-index: 12;
+            pointer-events: none;
+            transform: translateX(-50%);
+            color: #d94f7c;
+            font-size: clamp(34px, 8vw, 58px);
+            font-weight: 900;
+            font-family: "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", Arial, sans-serif;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            opacity: 0;
+            text-shadow:
+                0 2px 0 #fff,
+                0 -2px 0 #fff,
+                2px 0 0 #fff,
+                -2px 0 0 #fff,
+                0 5px 14px rgba(255, 91, 140, 0.28);
+            transition: opacity 0.9s ease;
+        }
+        .firework-text.show {
+            opacity: 1;
+        }
+
+        /* 主容器 */
+        .container {
+            text-align: center;
+            z-index: 10;
+            position: relative;
+            width: 90%;
+            max-width: 450px;
+        }
+
+        /* 提示文字 */
+        .hint-text {
+            color: #ff6b8b;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+            animation: pulse 1.5s infinite;
+            line-height: 1.8;
+        }
+
+        /* 礼物盒样式 */
+        .gift-box {
+            width: 160px;
+            height: 160px;
+            margin: 0 auto;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .gift-box:hover {
+            transform: scale(1.05);
+        }
+        .gift-box.shake {
+            animation: shake 0.5s ease-in-out infinite;
+        }
+        .gift-box.open .box-lid {
+            transform: translate(-34px, -96px) rotate(-28deg);
+            opacity: 0;
+        }
+        .gift-box.open .box-body {
+            transform: scaleY(0.78) translateY(18px);
+            opacity: 0.18;
+        }
+        .gift-box.open {
+            pointer-events: none;
+            transform: scale(0.72) translateY(24px);
+            transition: transform 0.9s ease-in-out, opacity 0.9s;
+            opacity: 0;
+        }
+        .box-lid {
+            width: 170px;
+            height: 40px;
+            background: #ff477e;
+            border-radius: 8px;
+            position: absolute;
+            top: 0;
+            left: -5px;
+            z-index: 5;
+            transition: transform 0.5s ease-in-out, opacity 0.5s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .box-lid::after {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 100%;
+            background: #ffccd5;
+            left: 70px;
+            top: 0;
+        }
+        .box-bow {
+            position: absolute;
+            width: 50px;
+            height: 30px;
+            background: #ffccd5;
+            border-radius: 50%;
+            top: -20px;
+            left: 40px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .box-bow-right {
+            position: absolute;
+            width: 50px;
+            height: 30px;
+            background: #ffccd5;
+            border-radius: 50%;
+            top: -20px;
+            right: 40px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .box-body {
+            width: 160px;
+            height: 120px;
+            background: #ff5c8a;
+            border-radius: 0 0 12px 12px;
+            position: absolute;
+            bottom: 0;
+            z-index: 4;
+            transition: transform 0.5s ease-in-out, opacity 0.5s;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+        .box-body::after {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 100%;
+            background: #ffccd5;
+            left: 65px;
+            top: 0;
+        }
+
+        /* 惊喜展示区 */
+        .surprise-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 24px;
+            padding: 28px 20px 24px;
+            max-height: 82vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(255, 107, 139, 0.2);
+            border: 4px solid #ffb3c6;
+            display: none;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .surprise-card.show {
+            display: block;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Hello Kitty 样式 */
+        .kitty-container {
+            margin-bottom: 20px;
+            animation: floatAnimation 3s infinite ease-in-out;
+        }
+        .kitty-frame {
+            width: 176px;
+            height: 176px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 50% 38%, rgba(255,255,255,0.96) 0%, rgba(255,240,246,0.92) 54%, rgba(255,190,214,0.86) 100%);
+            border: 3px solid rgba(255, 154, 190, 0.72);
+            box-shadow:
+                0 10px 24px rgba(255, 107, 139, 0.22),
+                inset 0 0 18px rgba(255, 255, 255, 0.88);
+        }
+        .kitty-container img {
+            width: 150px;
+            max-width: 45vw;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            border-radius: 18px;
+        }
+
+        /* 祝福语文字 */
+        .wish-title {
+            color: #ff477e;
+            font-size: 1.6rem;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        .wish-text {
+            color: #666;
+            font-size: 1.05rem;
+            line-height: 1.8;
+            min-height: 112px;
+            padding: 0 10px;
+        }
+        .ending-note {
+            color: #ff6b8b;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-top: 16px;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        .ending-note.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .wish-maker {
+            margin-top: 16px;
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        .wish-maker.show {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .wish-form {
+            display: none;
+            margin-top: 10px;
+        }
+        .wish-form.show {
+            display: block;
+        }
+        .wish-form p {
+            color: #ff6b8b;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .wish-input-row {
+            display: flex;
+            gap: 8px;
+        }
+        .wish-input {
+            flex: 1;
+            min-width: 0;
+            border: 2px solid #ffb3c6;
+            border-radius: 999px;
+            padding: 10px 14px;
+            color: #666;
+            font-size: 0.95rem;
+            outline: none;
+            background: rgba(255,255,255,0.9);
+        }
+        .wish-input:focus {
+            border-color: #ff6b8b;
+            box-shadow: 0 0 0 3px rgba(255, 107, 139, 0.15);
+        }
+        .wish-button {
+            border: none;
+            border-radius: 999px;
+            padding: 10px 16px;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            background: linear-gradient(135deg, #ff6b8b, #ff9fbe);
+            box-shadow: 0 6px 14px rgba(255, 107, 139, 0.25);
+        }
+        .wish-toggle {
+            border: 2px solid #ffb3c6;
+            border-radius: 999px;
+            padding: 10px 18px;
+            color: #d94f7c;
+            font-weight: bold;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.82);
+            box-shadow: 0 6px 14px rgba(255, 107, 139, 0.14);
+        }
+        .wish-result {
+            color: #d94f7c;
+            font-weight: bold;
+            margin-top: 10px;
+            min-height: 24px;
+        }
+
+        /* 音乐控制按钮 */
+        .music-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.7);
+            border: 2px solid #ffb3c6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 100;
+            font-size: 1.2rem;
+        }
+        .music-btn.playing {
+            animation: rotate 4s linear infinite;
+        }
+
+        /* 动画定义 */
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(-10vh) scale(1.2); opacity: 0; }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg); }
+            20%, 60% { transform: rotate(-5deg); }
+            40%, 80% { transform: rotate(5deg); }
+        }
+        @keyframes floatAnimation {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        @keyframes glowBurst {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+            25% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); }
+        }
+        @keyframes rotate {
+            100% { transform: rotate(360deg); }
+        }
+        @media (max-width: 480px) {
+            .container {
+                width: 92%;
+            }
+            .hint-text {
+                font-size: 1.05rem;
+                margin-bottom: 24px;
+            }
+            .surprise-card {
+                padding: 22px 14px 20px;
+                border-radius: 20px;
+            }
+            .firework-text {
+                top: 7%;
+                font-size: clamp(28px, 8vw, 42px);
+            }
+            .kitty-frame {
+                width: 148px;
+                height: 148px;
+            }
+            .kitty-container img {
+                width: 126px;
+            }
+            .wish-title {
+                font-size: 1.35rem;
+            }
+            .wish-text {
+                font-size: 0.96rem;
+                line-height: 1.7;
+                min-height: 96px;
+            }
+            .wish-input-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 音乐组件（保留接口，可自行更换你喜欢的网易云或QQ音乐直链） -->
+    <div class="music-btn" id="musicBtn">🎵</div>
+    <audio id="bgMusic" loop src="https://actions.google.com/sounds/v1/ambiences/morning_birds.ogg"></audio>
+
+    <!-- 背景漂浮小气泡 -->
+    <div class="decorations" id="decorations"></div>
+    <div class="magic-glow" id="magicGlow"></div>
+
+    <!-- 烟花 Canvas -->
+    <canvas id="fireworks-canvas"></canvas>
+    <div class="firework-text" id="fireworkText">祝fx天天开心</div>
+
+    <!-- 主交互区 -->
+    <div class="container">
+        <!-- 第一步：礼物盒 -->
+        <div id="gift-section">
+            <p class="hint-text">To：樊响<br>满怀童心的大朋友 ✨<br>请点开你的六一礼物盒</p>
+            <div class="gift-box shake" id="giftBox">
+                <div class="box-bow"></div>
+                <div class="box-bow-right"></div>
+                <div class="box-lid"></div>
+                <div class="box-body"></div>
+            </div>
+        </div>
+
+        <!-- 第二步：惊喜卡片 -->
+        <div class="surprise-card" id="surpriseCard">
+            <div class="kitty-container">
+                <div class="kitty-frame">
+                    <img src="c97162812c990d798e9b6a706dd319f0.png" alt="Hello Kitty">
+                </div>
+            </div>
+            <div class="wish-title">🎉 六一儿童节快乐！</div>
+            <!-- 打字机效果文本区 -->
+            <div class="wish-text" id="typewriter-text"></div>
+            <div class="ending-note" id="endingNote">愿你每天都开心闪闪发光 ✨</div>
+            <div class="wish-maker" id="wishMaker">
+                <button class="wish-toggle" id="wishToggle">偷偷许个愿</button>
+                <div class="wish-form" id="wishForm">
+                    <p>把今天的小愿望写下来吧</p>
+                    <div class="wish-input-row">
+                        <input class="wish-input" id="wishInput" maxlength="30" placeholder="写下你的愿望">
+                        <button class="wish-button" id="wishButton">许愿</button>
+                    </div>
+                    <div class="wish-result" id="wishResult"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. 生成可爱的背景小气泡
+        const decorations = document.getElementById('decorations');
+        const bubbleColors = ['#fff', '#ffd1dc', '#fff0f5', '#ffe3e3'];
+        for (let i = 0; i < 15; i++) {
+            const bubble = document.createElement('div');
+            bubble.classList.add('bubble');
+            const size = Math.random() * 20 + 10;
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
+            bubble.style.left = `${Math.random() * 100}%`;
+            bubble.style.animationDelay = `${Math.random() * 5}s`;
+            bubble.style.animationDuration = `${Math.random() * 4 + 6}s`;
+            bubble.style.background = bubbleColors[Math.floor(Math.random() * bubbleColors.length)];
+            decorations.appendChild(bubble);
+        }
+
+        // 2. 音乐播放逻辑
+        const musicBtn = document.getElementById('musicBtn');
+        const bgMusic = document.getElementById('bgMusic');
+        let isPlaying = false;
+        musicBtn.addEventListener('click', () => {
+            if (isPlaying) {
+                bgMusic.pause();
+                musicBtn.classList.remove('playing');
+            } else {
+                bgMusic.play().catch(e => console.log("需要用户交互才能播放音乐"));
+                musicBtn.classList.add('playing');
+            }
+            isPlaying = !isPlaying;
+        });
+
+        // 3. 烟花特效核心代码 (Canvas)
+        const canvas = document.getElementById('fireworks-canvas');
+        const ctx = canvas.getContext('2d');
+        let fireworks = [];
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Firework {
+            constructor(sx, sy, tx, ty) {
+                this.x = sx;
+                this.y = sy;
+                this.sx = sx;
+                this.sy = sy;
+                this.tx = tx;
+                this.ty = ty;
+                this.distanceToTarget = calculateDistance(sx, sy, tx, ty);
+                this.distanceTraveled = 0;
+                this.coordinates = [];
+                this.coordinateCount = 3;
+                while(this.coordinateCount--) {
+                    this.coordinates.push([this.x, this.y]);
+                }
+                this.angle = Math.atan2(ty - sy, tx - sx);
+                this.speed = random(2.2, 3.4);
+                this.acceleration = 1.06;
+                this.hue = random(0, 360);
+                this.saturation = random(88, 100);
+                this.brightness = random(62, 82);
+            }
+            update(index) {
+                this.coordinates.pop();
+                this.coordinates.unshift([this.x, this.y]);
+                this.speed *= this.acceleration;
+                let vx = Math.cos(this.angle) * this.speed;
+                let vy = Math.sin(this.angle) * this.speed;
+                this.distanceTraveled = calculateDistance(this.sx, this.sy, this.x + vx, this.y + vy);
+                
+                if(this.distanceTraveled >= this.distanceToTarget) {
+                    const burstType = Math.random() < 0.45 ? 'ring' : 'full';
+                    createParticles(this.tx, this.ty, this.hue, Math.floor(random(70, 95)), 1, burstType);
+                    createParticles(this.tx, this.ty, (this.hue + random(80, 180)) % 360, Math.floor(random(24, 42)), 1.25, 'full');
+                    createSparkles(this.tx, this.ty, this.hue);
+                    fireworks.splice(index, 1);
+                } else {
+                    this.x += vx;
+                    this.y += vy;
+                }
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.moveTo(this.coordinates[this.coordinates.length - 1][0], this.coordinates[this.coordinates.length - 1][1]);
+                ctx.lineTo(this.x, this.y);
+                ctx.strokeStyle = `hsl(${this.hue}, ${this.saturation}%, ${this.brightness}%)`;
+                ctx.lineWidth = 2.4;
+                ctx.stroke();
+            }
+        }
+
+        class Particle {
+            constructor(x, y, hue, speedMultiplier = 1, burstType = 'full') {
+                this.x = x;
+                this.y = y;
+                this.coordinates = [];
+                this.coordinateCount = 8;
+                while(this.coordinateCount--) {
+                    this.coordinates.push([this.x, this.y]);
+                }
+                this.angle = burstType === 'ring'
+                    ? (Math.floor(random(0, 48)) / 48) * Math.PI * 2 + random(-0.03, 0.03)
+                    : random(0, Math.PI * 2);
+                this.speed = random(burstType === 'ring' ? 5 : 2, 13) * speedMultiplier;
+                this.friction = random(0.91, 0.95);
+                this.gravity = random(0.65, 1.1);
+                this.hue = Math.random() < 0.65 ? random(hue - 28, hue + 28) : random(0, 360);
+                this.hueShift = random(-1.5, 1.5);
+                this.saturation = random(88, 100);
+                this.brightness = random(58, 88);
+                this.alpha = 1;
+                this.decay = random(0.008, 0.02);
+                this.lineWidth = random(1.4, 3.1);
+                this.twinkle = Math.random() < 0.3;
+            }
+            update(index) {
+                this.coordinates.pop();
+                this.coordinates.unshift([this.x, this.y]);
+                this.speed *= this.friction;
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed + this.gravity;
+                this.hue = (this.hue + this.hueShift + 360) % 360;
+                this.alpha -= this.decay;
+                
+                if(this.alpha <= this.decay) {
+                    particles.splice(index, 1);
+                }
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.moveTo(this.coordinates[this.coordinates.length - 1][0], this.coordinates[this.coordinates.length - 1][1]);
+                ctx.lineTo(this.x, this.y);
+                const alpha = this.twinkle ? this.alpha * random(0.45, 1.25) : this.alpha;
+                ctx.strokeStyle = `hsla(${this.hue}, ${this.saturation}%, ${this.brightness}%, ${Math.max(0, alpha)})`;
+                ctx.lineWidth = this.lineWidth;
+                ctx.stroke();
+            }
+        }
+
+        class Sparkle {
+            constructor(x, y, hue) {
+                this.x = x + random(-45, 45);
+                this.y = y + random(-35, 35);
+                this.hue = (hue + random(-60, 60) + 360) % 360;
+                this.alpha = 1;
+                this.size = random(2, 4.5);
+                this.decay = random(0.025, 0.045);
+            }
+            update(index) {
+                this.alpha -= this.decay;
+                if(this.alpha <= this.decay) {
+                    particles.splice(index, 1);
+                }
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.strokeStyle = `hsl(${this.hue}, 100%, 78%)`;
+                ctx.lineWidth = 1.4;
+                ctx.beginPath();
+                ctx.moveTo(this.x - this.size, this.y);
+                ctx.lineTo(this.x + this.size, this.y);
+                ctx.moveTo(this.x, this.y - this.size);
+                ctx.lineTo(this.x, this.y + this.size);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        class TextFirework {
+            constructor(text) {
+                this.text = text;
+                this.life = 0;
+                this.duration = Infinity;
+                this.sparkles = [];
+                for (let i = 0; i < 10; i++) {
+                    this.sparkles.push({
+                        angle: random(0, Math.PI * 2),
+                        distance: random(110, 185),
+                        size: random(0.9, 1.8),
+                        hue: random(320, 360),
+                        speed: random(0.02, 0.08)
+                    });
+                }
+            }
+            update() {
+                this.life++;
+            }
+            draw() {
+                const fadeIn = Math.min(this.life / 45, 1);
+                const alpha = fadeIn * 0.92;
+                const x = canvas.width / 2;
+                const y = canvas.height * 0.23;
+                const fontSize = Math.min(58, Math.max(34, canvas.width * 0.095));
+                const scale = 1;
+
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = `bold ${fontSize}px "Microsoft YaHei", "PingFang SC", Arial, sans-serif`;
+                ctx.translate(x, y);
+                ctx.scale(scale, scale);
+
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = 'rgba(255, 135, 170, 0.35)';
+                ctx.lineWidth = 10;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.82)';
+                ctx.strokeText(this.text, 0, 0);
+
+                ctx.shadowBlur = 2;
+                ctx.shadowColor = 'rgba(255, 135, 170, 0.35)';
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = 'rgba(219, 79, 126, 0.75)';
+                ctx.strokeText(this.text, 0, 0);
+
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#ffe3ee';
+                ctx.fillText(this.text, 0, 0);
+
+                ctx.globalCompositeOperation = 'lighter';
+                for (const sparkle of this.sparkles) {
+                    const distance = sparkle.distance + this.life * sparkle.speed;
+                    const sx = Math.cos(sparkle.angle) * distance;
+                    const sy = Math.sin(sparkle.angle) * distance * 0.45;
+                    ctx.fillStyle = `hsla(${sparkle.hue}, 80%, 70%, ${alpha * 0.16})`;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, sparkle.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+            get isDone() {
+                return false;
+            }
+        }
+
+        function calculateDistance(p1x, p1y, p2x, p2y) {
+            return Math.sqrt(Math.pow(p1x - p2x, 2) + Math.pow(p1y - p2y, 2));
+        }
+        function random(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+        function createParticles(x, y, hue, particleCount = 60, speedMultiplier = 1, burstType = 'full') {
+            while(particleCount--) {
+                particles.push(new Particle(x, y, hue, speedMultiplier, burstType));
+            }
+        }
+        function createSparkles(x, y, hue) {
+            let sparkleCount = 18;
+            while(sparkleCount--) {
+                particles.push(new Sparkle(x, y, hue));
+            }
+        }
+
+        let isFireworksActive = false;
+        let fireworkIntensity = 1;
+        let textFirework = null;
+        let hasShownTextFirework = false;
+        const fireworkText = document.getElementById('fireworkText');
+        function loop() {
+            requestAnimationFrame(loop);
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.24)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalCompositeOperation = 'lighter';
+            
+            let i = fireworks.length;
+            while(i--) { fireworks[i].draw(); fireworks[i].update(i); }
+            let j = particles.length;
+            while(j--) { particles[j].draw(); particles[j].update(j); }
+
+            if (textFirework) {
+                textFirework.draw();
+                textFirework.update();
+                if (textFirework.isDone) {
+                    textFirework = null;
+                }
+            }
+            
+            if (isFireworksActive && Math.random() < 0.055 * fireworkIntensity) {
+                const launchCount = Math.random() < 0.28 * fireworkIntensity ? 2 : 1;
+                for (let n = 0; n < launchCount; n++) {
+                    launchFirework();
+                }
+            }
+        }
+
+        function launchFirework() {
+            fireworks.push(new Firework(
+                random(canvas.width * 0.18, canvas.width * 0.82),
+                canvas.height,
+                random(canvas.width * 0.08, canvas.width * 0.92),
+                random(canvas.height * 0.08, canvas.height * 0.55)
+            ));
+        }
+
+        function startTextFirework() {
+            if (hasShownTextFirework) return;
+            hasShownTextFirework = true;
+            fireworkText.classList.add('show');
+            textFirework = null;
+            for (let i = 0; i < 5; i++) {
+                setTimeout(launchFirework, i * 140);
+            }
+        }
+
+        // 4. 打字机动态寄语效果
+        const textToType = "愿你被这个世界温柔以待，保留最珍贵的童心。\n在这个属于大小朋友的节日里，祝你每天都像 Hello Kitty 一样无忧无虑，可爱满分！\n六一儿童节快乐呀！✨🌸";
+        function startTypewriter() {
+            const element = document.getElementById('typewriter-text');
+            const endingNote = document.getElementById('endingNote');
+            const wishMaker = document.getElementById('wishMaker');
+            let index = 0;
+            function type() {
+                if (index < textToType.length) {
+                    const char = textToType.charAt(index);
+                    element.innerHTML += char === '\n' ? '<br>' : char;
+                    index++;
+                    setTimeout(type, char === '。' || char === '！' ? 220 : 62);
+                } else {
+                    setTimeout(() => endingNote.classList.add('show'), 350);
+                    setTimeout(() => wishMaker.classList.add('show'), 900);
+                }
+            }
+            type();
+        }
+
+        // 5. 点击开箱核心逻辑
+        const giftBox = document.getElementById('giftBox');
+        const giftSection = document.getElementById('gift-section');
+        const surpriseCard = document.getElementById('surpriseCard');
+        const magicGlow = document.getElementById('magicGlow');
+        const wishToggle = document.getElementById('wishToggle');
+        const wishForm = document.getElementById('wishForm');
+        const wishInput = document.getElementById('wishInput');
+        const wishButton = document.getElementById('wishButton');
+        const wishResult = document.getElementById('wishResult');
+
+        function makeWish() {
+            const wish = wishInput.value.trim();
+            wishResult.textContent = wish
+                ? `愿望已收到：${wish}，一定会被温柔实现 🌟`
+                : '愿望已收到，愿你一直被好运围绕 🌟';
+            wishInput.value = '';
+            for (let i = 0; i < 4; i++) {
+                setTimeout(launchFirework, i * 180);
+            }
+        }
+
+        wishToggle.addEventListener('click', () => {
+            wishForm.classList.add('show');
+            wishToggle.style.display = 'none';
+            wishInput.focus();
+        });
+        wishButton.addEventListener('click', makeWish);
+        wishInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                makeWish();
+            }
+        });
+
+        giftBox.addEventListener('click', () => {
+            giftBox.classList.remove('shake');
+            giftBox.classList.add('open');
+            magicGlow.classList.add('show');
+            
+            // 尝试自动播放音乐
+            bgMusic.play().then(() => musicBtn.classList.add('playing')).catch(e => {});
+
+            // 等开箱动画结束后展示惊喜
+            setTimeout(() => {
+                giftSection.style.display = 'none';
+                surpriseCard.style.display = 'block';
+                
+                // 触发烟花并让卡片弹窗浮现
+                isFireworksActive = true;
+                fireworkIntensity = 1.8;
+                for (let i = 0; i < 8; i++) {
+                    setTimeout(launchFirework, i * 130);
+                }
+                setTimeout(() => {
+                    fireworkIntensity = 0.75;
+                }, 5200);
+                setTimeout(startTextFirework, 650);
+                setTimeout(() => {
+                    surpriseCard.classList.add('show');
+                    startTypewriter();
+                }, 50);
+            }, 500);
+        });
+
+        // 启动绘制循环
+        loop();
+    </script>
+</body>
+</html>
