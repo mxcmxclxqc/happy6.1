@@ -349,6 +349,65 @@
             margin-top: 10px;
             min-height: 24px;
         }
+        .easter-egg {
+            display: none;
+            margin: -6px auto 14px;
+            color: #d94f7c;
+            font-size: 0.92rem;
+            font-weight: bold;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.45s ease, transform 0.45s ease;
+        }
+        .easter-egg.show {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .signature {
+            margin-top: 14px;
+            color: #ff6b8b;
+            font-size: 0.96rem;
+            font-weight: bold;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.55s ease, transform 0.55s ease;
+        }
+        .signature.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .replay-button {
+            display: none;
+            margin-top: 12px;
+            border: 2px solid #ffb3c6;
+            border-radius: 999px;
+            padding: 9px 16px;
+            color: #d94f7c;
+            font-weight: bold;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.82);
+            box-shadow: 0 6px 14px rgba(255, 107, 139, 0.14);
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.45s ease, transform 0.45s ease;
+        }
+        .replay-button.show {
+            display: inline-block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .wish-star {
+            position: fixed;
+            z-index: 120;
+            left: 50%;
+            bottom: 24%;
+            pointer-events: none;
+            color: #ffd45c;
+            font-size: 1.7rem;
+            text-shadow: 0 2px 8px rgba(255, 148, 180, 0.35);
+            animation: wishStarFloat 1.8s ease-out forwards;
+        }
 
         /* 音乐控制按钮 */
         .music-btn {
@@ -421,6 +480,11 @@
         @keyframes rotate {
             100% { transform: rotate(360deg); }
         }
+        @keyframes wishStarFloat {
+            0% { opacity: 0; transform: translate(-50%, 24px) scale(0.5) rotate(0deg); }
+            18% { opacity: 1; transform: translate(-50%, 0) scale(1) rotate(8deg); }
+            100% { opacity: 0; transform: translate(-50%, -150px) scale(1.25) rotate(24deg); }
+        }
         @media (max-width: 480px) {
             .container {
                 width: 92%;
@@ -463,7 +527,7 @@
     <!-- 背景音乐按钮 -->
     <div class="music-btn" id="musicBtn">🎵</div>
     <div class="music-panel" id="musicPanel">
-        手机没声音的话，点这里播放音乐
+        点一下，配个轻松 BGM
         <audio class="music-player" id="bgMusic" loop controls preload="metadata" playsinline webkit-playsinline>
             <source src="obj_wo3DlMOGwrbDjj7DisKw_17555154894_6ff8_d0ee_c8e7_b865888b0eda470ec9ade2a9503274c7.m4a" type="audio/mp4">
         </audio>
@@ -475,13 +539,13 @@
 
     <!-- 烟花 Canvas -->
     <canvas id="fireworks-canvas"></canvas>
-    <div class="firework-text" id="fireworkText">祝fx天天开心</div>
+    <div class="firework-text" id="fireworkText">祝樊响天天开心</div>
 
     <!-- 主交互区 -->
     <div class="container">
         <!-- 第一步：礼物盒 -->
         <div id="gift-section">
-            <p class="hint-text">To：樊响<br>满怀童心的大朋友 ✨<br>请点开你的六一礼物盒</p>
+            <p class="hint-text">To：樊响小朋友<br>愿今天的快乐份额加满 ✨<br>请点开你的六一礼物盒</p>
             <div class="gift-box shake" id="giftBox">
                 <div class="box-bow"></div>
                 <div class="box-bow-right"></div>
@@ -497,10 +561,11 @@
                     <img src="c97162812c990d798e9b6a706dd319f0.png" alt="Hello Kitty">
                 </div>
             </div>
+            <div class="easter-egg" id="easterEgg">隐藏彩蛋：今天的快乐份额 +1！</div>
             <div class="wish-title">🎉 六一儿童节快乐！</div>
             <!-- 打字机效果文本区 -->
             <div class="wish-text" id="typewriter-text"></div>
-            <div class="ending-note" id="endingNote">愿你每天都开心闪闪发光 ✨</div>
+            <div class="ending-note" id="endingNote">愿你今天不用赶路，可以慢慢开心 ✨</div>
             <div class="wish-maker" id="wishMaker">
                 <button class="wish-toggle" id="wishToggle">偷偷许个愿</button>
                 <div class="wish-form" id="wishForm">
@@ -512,6 +577,8 @@
                     <div class="wish-result" id="wishResult"></div>
                 </div>
             </div>
+            <div class="signature" id="signature">From：你的好朋友 mxc</div>
+            <button class="replay-button" id="replayButton">再放一次烟花</button>
         </div>
     </div>
 
@@ -869,11 +936,13 @@
         }
 
         // 4. 打字机动态寄语效果
-        const textToType = "愿你被这个世界温柔以待，保留最珍贵的童心。\n在这个属于大小朋友的节日里，祝你每天都像 Hello Kitty 一样无忧无虑，可爱满分！\n六一儿童节快乐呀！✨🌸";
+        const textToType = "愿你一直保留一点童心，也一直拥有把普通日子变可爱的能力。\n在这个属于大小朋友的节日里，祝你今天轻轻松松，快乐多一点点！\n六一儿童节快乐呀！✨🌸";
         function startTypewriter() {
             const element = document.getElementById('typewriter-text');
             const endingNote = document.getElementById('endingNote');
             const wishMaker = document.getElementById('wishMaker');
+            const signature = document.getElementById('signature');
+            const replayButton = document.getElementById('replayButton');
             let index = 0;
             function type() {
                 if (index < textToType.length) {
@@ -884,6 +953,8 @@
                 } else {
                     setTimeout(() => endingNote.classList.add('show'), 350);
                     setTimeout(() => revealWithTransition(wishMaker), 900);
+                    setTimeout(() => signature.classList.add('show'), 1250);
+                    setTimeout(() => replayButton.classList.add('show'), 1500);
                 }
             }
             type();
@@ -899,13 +970,36 @@
         const wishInput = document.getElementById('wishInput');
         const wishButton = document.getElementById('wishButton');
         const wishResult = document.getElementById('wishResult');
+        const kittyFrame = document.querySelector('.kitty-frame');
+        const easterEgg = document.getElementById('easterEgg');
+        const replayButton = document.getElementById('replayButton');
+
+        function launchWishStar() {
+            const star = document.createElement('div');
+            star.className = 'wish-star';
+            star.textContent = '⭐';
+            document.body.appendChild(star);
+            star.addEventListener('animationend', () => star.remove(), { once: true });
+        }
+
+        function replayFireworks() {
+            fireworkIntensity = 1.4;
+            isFireworksActive = true;
+            for (let i = 0; i < 6; i++) {
+                setTimeout(launchFirework, i * 130);
+            }
+            setTimeout(() => {
+                fireworkIntensity = 0.75;
+            }, 3200);
+        }
 
         function makeWish() {
             const wish = wishInput.value.trim();
             wishResult.textContent = wish
-                ? `愿望已收到：${wish}，一定会被温柔实现 🌟`
-                : '愿望已收到，愿你一直被好运围绕 🌟';
+                ? `愿望已放进星星里：${wish}，祝它顺利实现！`
+                : '小愿望已放进星星里，接下来交给好运啦。';
             wishInput.value = '';
+            launchWishStar();
             for (let i = 0; i < 4; i++) {
                 setTimeout(launchFirework, i * 180);
             }
@@ -922,6 +1016,13 @@
                 makeWish();
             }
         });
+        kittyFrame.addEventListener('click', () => {
+            revealWithTransition(easterEgg);
+            for (let i = 0; i < 3; i++) {
+                setTimeout(launchFirework, i * 160);
+            }
+        }, { once: true });
+        replayButton.addEventListener('click', replayFireworks);
 
         let hasOpenedGift = false;
         function openGift(event) {
