@@ -438,9 +438,8 @@
 </head>
 <body>
 
-    <!-- 音乐组件（保留接口，可自行更换你喜欢的网易云或QQ音乐直链） -->
+    <!-- 背景音乐按钮 -->
     <div class="music-btn" id="musicBtn">🎵</div>
-    <audio id="bgMusic" loop src="https://actions.google.com/sounds/v1/ambiences/morning_birds.ogg"></audio>
 
     <!-- 背景漂浮小气泡 -->
     <div class="decorations" id="decorations"></div>
@@ -505,19 +504,96 @@
             decorations.appendChild(bubble);
         }
 
-        // 2. 音乐播放逻辑
+        // 2. 背景音乐逻辑：用 Web Audio 生成轻柔循环旋律，不依赖外部音频文件
         const musicBtn = document.getElementById('musicBtn');
-        const bgMusic = document.getElementById('bgMusic');
+        let audioContext;
+        let musicGain;
+        let musicTimer;
+        let activeOscillators = [];
         let isPlaying = false;
+
+        const melody = [
+            { note: 523.25, duration: 0.34 }, { note: 659.25, duration: 0.34 },
+            { note: 783.99, duration: 0.48 }, { note: 659.25, duration: 0.34 },
+            { note: 587.33, duration: 0.34 }, { note: 659.25, duration: 0.48 },
+            { note: 523.25, duration: 0.34 }, { note: 392.00, duration: 0.5 },
+            { note: 440.00, duration: 0.34 }, { note: 523.25, duration: 0.34 },
+            { note: 659.25, duration: 0.52 }, { note: 587.33, duration: 0.34 },
+            { note: 523.25, duration: 0.34 }, { note: 493.88, duration: 0.48 },
+            { note: 523.25, duration: 0.64 }, { note: 0, duration: 0.32 }
+        ];
+
+        function initMusic() {
+            if (audioContext) return;
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            musicGain = audioContext.createGain();
+            musicGain.gain.value = 0.08;
+            musicGain.connect(audioContext.destination);
+        }
+
+        function playTone(frequency, startTime, duration) {
+            if (!frequency) return;
+
+            const oscillator = audioContext.createOscillator();
+            const noteGain = audioContext.createGain();
+            activeOscillators.push(oscillator);
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequency, startTime);
+            noteGain.gain.setValueAtTime(0, startTime);
+            noteGain.gain.linearRampToValueAtTime(0.55, startTime + 0.035);
+            noteGain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+            oscillator.connect(noteGain);
+            noteGain.connect(musicGain);
+            oscillator.start(startTime);
+            oscillator.stop(startTime + duration + 0.03);
+            oscillator.onended = () => {
+                activeOscillators = activeOscillators.filter(item => item !== oscillator);
+            };
+        }
+
+        function scheduleMelody() {
+            if (!isPlaying) return;
+            let cursor = audioContext.currentTime + 0.05;
+            melody.forEach(({ note, duration }) => {
+                playTone(note, cursor, duration * 0.86);
+                cursor += duration;
+            });
+            musicTimer = setTimeout(scheduleMelody, Math.max(200, (cursor - audioContext.currentTime) * 1000));
+        }
+
+        async function startMusic() {
+            initMusic();
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+            if (isPlaying) return;
+            isPlaying = true;
+            musicGain.gain.setValueAtTime(0.08, audioContext.currentTime);
+            musicBtn.classList.add('playing');
+            scheduleMelody();
+        }
+
+        function stopMusic() {
+            clearTimeout(musicTimer);
+            activeOscillators.forEach(oscillator => {
+                try {
+                    oscillator.stop();
+                } catch (error) {}
+            });
+            activeOscillators = [];
+            if (audioContext && musicGain) {
+                musicGain.gain.setValueAtTime(0, audioContext.currentTime);
+            }
+            isPlaying = false;
+            musicBtn.classList.remove('playing');
+        }
+
         musicBtn.addEventListener('click', () => {
             if (isPlaying) {
-                bgMusic.pause();
-                musicBtn.classList.remove('playing');
+                stopMusic();
             } else {
-                bgMusic.play().catch(e => console.log("需要用户交互才能播放音乐"));
-                musicBtn.classList.add('playing');
+                startMusic().catch(() => {});
             }
-            isPlaying = !isPlaying;
         });
 
         // 3. 烟花特效核心代码 (Canvas)
@@ -860,8 +936,8 @@
             giftBox.classList.add('open');
             magicGlow.classList.add('show');
             
-            // 尝试自动播放音乐
-            bgMusic.play().then(() => musicBtn.classList.add('playing')).catch(e => {});
+            // 点击礼物盒属于用户交互，可以顺手启动背景音乐
+            startMusic().catch(() => {});
 
             // 等开箱动画结束后展示惊喜
             setTimeout(() => {
