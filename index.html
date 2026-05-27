@@ -440,6 +440,7 @@
 
     <!-- 背景音乐按钮 -->
     <div class="music-btn" id="musicBtn">🎵</div>
+    <audio id="bgMusic" loop preload="auto" src="obj_wo3DlMOGwrbDjj7DisKw_17555154894_6ff8_d0ee_c8e7_b865888b0eda470ec9ade2a9503274c7.mp3"></audio>
 
     <!-- 背景漂浮小气泡 -->
     <div class="decorations" id="decorations"></div>
@@ -504,102 +505,33 @@
             decorations.appendChild(bubble);
         }
 
-        // 2. 背景音乐逻辑：用 Web Audio 生成轻柔循环旋律，不依赖外部音频文件
+        // 2. 背景音乐逻辑
         const musicBtn = document.getElementById('musicBtn');
-        const musicVolume = 0.16;
-        let audioContext;
-        let musicGain;
-        let musicTimer;
-        let activeOscillators = [];
+        const bgMusic = document.getElementById('bgMusic');
         let isPlaying = false;
 
-        const melody = [
-            { note: 523.25, duration: 0.34 }, { note: 659.25, duration: 0.34 },
-            { note: 783.99, duration: 0.48 }, { note: 659.25, duration: 0.34 },
-            { note: 587.33, duration: 0.34 }, { note: 659.25, duration: 0.48 },
-            { note: 523.25, duration: 0.34 }, { note: 392.00, duration: 0.5 },
-            { note: 440.00, duration: 0.34 }, { note: 523.25, duration: 0.34 },
-            { note: 659.25, duration: 0.52 }, { note: 587.33, duration: 0.34 },
-            { note: 523.25, duration: 0.34 }, { note: 493.88, duration: 0.48 },
-            { note: 523.25, duration: 0.64 }, { note: 0, duration: 0.32 }
-        ];
-
-        function initMusic() {
-            if (audioContext) return;
-            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContextClass) return;
-
-            audioContext = new AudioContextClass();
-            musicGain = audioContext.createGain();
-            musicGain.gain.value = musicVolume;
-            musicGain.connect(audioContext.destination);
-        }
-
-        function playTone(frequency, startTime, duration) {
-            if (!frequency || !audioContext || !musicGain) return;
-
-            const oscillator = audioContext.createOscillator();
-            const noteGain = audioContext.createGain();
-            activeOscillators.push(oscillator);
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(frequency, startTime);
-            noteGain.gain.setValueAtTime(0, startTime);
-            noteGain.gain.linearRampToValueAtTime(0.55, startTime + 0.035);
-            noteGain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-            oscillator.connect(noteGain);
-            noteGain.connect(musicGain);
-            oscillator.start(startTime);
-            oscillator.stop(startTime + duration + 0.03);
-            oscillator.onended = () => {
-                activeOscillators = activeOscillators.filter(item => item !== oscillator);
-            };
-        }
-
-        function scheduleMelody() {
-            if (!isPlaying || !audioContext) return;
-            let cursor = audioContext.currentTime + 0.05;
-            melody.forEach(({ note, duration }) => {
-                playTone(note, cursor, duration * 0.86);
-                cursor += duration;
-            });
-            musicTimer = setTimeout(scheduleMelody, Math.max(200, (cursor - audioContext.currentTime) * 1000));
-        }
-
         async function startMusic() {
-            initMusic();
-            if (!audioContext || !musicGain) return;
-
-            if (audioContext.state === 'suspended') {
-                await audioContext.resume();
-            }
             if (isPlaying) return;
-            isPlaying = true;
-            musicGain.gain.setValueAtTime(musicVolume, audioContext.currentTime);
-            musicBtn.classList.add('playing');
-            scheduleMelody();
+            bgMusic.volume = 0.8;
+            await bgMusic.play();
         }
 
         function unlockMusicForMobile() {
-            initMusic();
-            if (audioContext && audioContext.state === 'suspended') {
-                audioContext.resume().catch(() => {});
-            }
+            bgMusic.load();
         }
 
         function stopMusic() {
-            clearTimeout(musicTimer);
-            activeOscillators.forEach(oscillator => {
-                try {
-                    oscillator.stop();
-                } catch (error) {}
-            });
-            activeOscillators = [];
-            if (audioContext && musicGain) {
-                musicGain.gain.setValueAtTime(0, audioContext.currentTime);
-            }
+            bgMusic.pause();
+        }
+
+        bgMusic.addEventListener('play', () => {
+            isPlaying = true;
+            musicBtn.classList.add('playing');
+        });
+        bgMusic.addEventListener('pause', () => {
             isPlaying = false;
             musicBtn.classList.remove('playing');
-        }
+        });
 
         musicBtn.addEventListener('click', () => {
             if (isPlaying) {
