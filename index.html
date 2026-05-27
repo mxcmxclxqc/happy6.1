@@ -506,6 +506,7 @@
 
         // 2. 背景音乐逻辑：用 Web Audio 生成轻柔循环旋律，不依赖外部音频文件
         const musicBtn = document.getElementById('musicBtn');
+        const musicVolume = 0.16;
         let audioContext;
         let musicGain;
         let musicTimer;
@@ -525,14 +526,17 @@
 
         function initMusic() {
             if (audioContext) return;
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) return;
+
+            audioContext = new AudioContextClass();
             musicGain = audioContext.createGain();
-            musicGain.gain.value = 0.08;
+            musicGain.gain.value = musicVolume;
             musicGain.connect(audioContext.destination);
         }
 
         function playTone(frequency, startTime, duration) {
-            if (!frequency) return;
+            if (!frequency || !audioContext || !musicGain) return;
 
             const oscillator = audioContext.createOscillator();
             const noteGain = audioContext.createGain();
@@ -552,7 +556,7 @@
         }
 
         function scheduleMelody() {
-            if (!isPlaying) return;
+            if (!isPlaying || !audioContext) return;
             let cursor = audioContext.currentTime + 0.05;
             melody.forEach(({ note, duration }) => {
                 playTone(note, cursor, duration * 0.86);
@@ -563,14 +567,23 @@
 
         async function startMusic() {
             initMusic();
+            if (!audioContext || !musicGain) return;
+
             if (audioContext.state === 'suspended') {
                 await audioContext.resume();
             }
             if (isPlaying) return;
             isPlaying = true;
-            musicGain.gain.setValueAtTime(0.08, audioContext.currentTime);
+            musicGain.gain.setValueAtTime(musicVolume, audioContext.currentTime);
             musicBtn.classList.add('playing');
             scheduleMelody();
+        }
+
+        function unlockMusicForMobile() {
+            initMusic();
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume().catch(() => {});
+            }
         }
 
         function stopMusic() {
@@ -595,6 +608,8 @@
                 startMusic().catch(() => {});
             }
         });
+        document.addEventListener('touchstart', unlockMusicForMobile, { once: true, passive: true });
+        document.addEventListener('pointerdown', unlockMusicForMobile, { once: true, passive: true });
 
         // 3. 烟花特效核心代码 (Canvas)
         const canvas = document.getElementById('fireworks-canvas');
