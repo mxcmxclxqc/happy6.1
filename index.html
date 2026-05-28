@@ -204,7 +204,8 @@
         }
 
         /* 惊喜展示区 */
-        .surprise-card {
+        .surprise-card,
+        .truth-card {
             background: rgba(255, 255, 255, 0.9);
             border-radius: 24px;
             padding: 28px 20px 24px;
@@ -217,7 +218,8 @@
             transform: scale(0.5);
             transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .surprise-card.show {
+        .surprise-card.show,
+        .truth-card.show {
             display: block;
             opacity: 1;
             transform: scale(1);
@@ -377,6 +379,17 @@
             opacity: 1;
             transform: translateY(0);
         }
+        .truth-message {
+            color: #666;
+            font-size: 1.03rem;
+            line-height: 1.85;
+            padding: 4px 10px 2px;
+        }
+        .truth-message strong {
+            color: #ff477e;
+        }
+        .truth-button,
+        .back-button,
         .replay-button {
             display: none;
             margin-top: 12px;
@@ -392,6 +405,8 @@
             transform: translateY(8px);
             transition: opacity 0.45s ease, transform 0.45s ease;
         }
+        .truth-button.show,
+        .back-button.show,
         .replay-button.show {
             display: inline-block;
             opacity: 1;
@@ -568,7 +583,24 @@
                 </div>
             </div>
             <div class="signature" id="signature">From：你的好朋友 mxc</div>
+            <button class="truth-button" id="truthButton">再收下一点真心话</button>
             <button class="replay-button" id="replayButton">再放一次烟花</button>
+        </div>
+        <div class="truth-card" id="truthCard">
+            <div class="wish-title">认真补充一下</div>
+            <div class="truth-message">
+                <strong>这个网页没有什么大道理，</strong><br>
+                就是想把今天变得轻松一点。<br><br>
+                有时候不用把每件事都做好，<br>
+                也不用一直表现得很厉害。<br>
+                能照顾好自己，已经很不错了。<br><br>
+                今天可以慢一点，<br>
+                可以幼稚一点，<br>
+                也可以什么都不想，只负责开心一下。<br><br>
+                就这些，六一快乐。
+            </div>
+            <button class="back-button" id="backButton">回到小惊喜</button>
+            <button class="replay-button" id="truthReplayButton">再放一次烟花</button>
         </div>
     </div>
 
@@ -932,6 +964,7 @@
             const endingNote = document.getElementById('endingNote');
             const wishMaker = document.getElementById('wishMaker');
             const signature = document.getElementById('signature');
+            const truthButton = document.getElementById('truthButton');
             const replayButton = document.getElementById('replayButton');
             let index = 0;
             function type() {
@@ -944,7 +977,8 @@
                     setTimeout(() => endingNote.classList.add('show'), 350);
                     setTimeout(() => revealWithTransition(wishMaker), 900);
                     setTimeout(() => signature.classList.add('show'), 1250);
-                    setTimeout(() => replayButton.classList.add('show'), 1500);
+                    setTimeout(() => truthButton.classList.add('show'), 1450);
+                    setTimeout(() => replayButton.classList.add('show'), 1650);
                 }
             }
             type();
@@ -962,7 +996,11 @@
         const wishResult = document.getElementById('wishResult');
         const kittyFrame = document.querySelector('.kitty-frame');
         const easterEgg = document.getElementById('easterEgg');
+        const truthCard = document.getElementById('truthCard');
+        const truthButton = document.getElementById('truthButton');
+        const backButton = document.getElementById('backButton');
         const replayButton = document.getElementById('replayButton');
+        const truthReplayButton = document.getElementById('truthReplayButton');
 
         function launchWishStar() {
             const star = document.createElement('div');
@@ -981,6 +1019,27 @@
             setTimeout(() => {
                 fireworkIntensity = 0.45;
             }, 3200);
+        }
+
+        function showTruthCard() {
+            surpriseCard.classList.remove('show');
+            setTimeout(() => {
+                surpriseCard.style.display = 'none';
+                revealWithTransition(truthCard);
+                backButton.classList.add('show');
+                truthReplayButton.classList.add('show');
+                for (let i = 0; i < 2; i++) {
+                    setTimeout(launchFirework, i * 180);
+                }
+            }, 220);
+        }
+
+        function showSurpriseCard() {
+            truthCard.classList.remove('show');
+            setTimeout(() => {
+                truthCard.style.display = 'none';
+                revealWithTransition(surpriseCard);
+            }, 220);
         }
 
         let isWishCoolingDown = false;
@@ -1022,6 +1081,9 @@
             }
         }, { once: true });
         replayButton.addEventListener('click', replayFireworks);
+        truthReplayButton.addEventListener('click', replayFireworks);
+        truthButton.addEventListener('click', showTruthCard);
+        backButton.addEventListener('click', showSurpriseCard);
 
         let hasOpenedGift = false;
         function openGift(event) {
