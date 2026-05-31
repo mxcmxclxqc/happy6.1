@@ -447,13 +447,13 @@
         .music-btn.playing {
             animation: rotate 4s linear infinite;
         }
-        .music-panel {
-            display: none;
-        }
         .music-player {
-            width: 100%;
-            height: 32px;
-            margin-top: 5px;
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+            left: -9999px;
         }
 
         /* 动画定义 */
@@ -531,12 +531,10 @@
 
     <!-- 背景音乐按钮 -->
     <div class="music-btn" id="musicBtn">🎵</div>
-    <div class="music-panel" id="musicPanel">
-        点一下，配个轻松 BGM
-        <audio class="music-player" id="bgMusic" loop controls preload="metadata" playsinline webkit-playsinline>
-            <source src="obj_wo3DlMOGwrbDjj7DisKw_17555154894_6ff8_d0ee_c8e7_b865888b0eda470ec9ade2a9503274c7.m4a" type="audio/mp4">
-        </audio>
-    </div>
+    <audio class="music-player" id="bgMusic" loop preload="auto" playsinline webkit-playsinline>
+        <source src="obj_wo3DlMOGwrbDjj7DisKw_17555154894_6ff8_d0ee_c8e7_b865888b0eda470ec9ade2a9503274c7.m4a" type="audio/mp4">
+        <source src="obj_wo3DlMOGwrbDjj7DisKw_17555154894_6ff8_d0ee_c8e7_b865888b0eda470ec9ade2a9503274c7.mp3" type="audio/mpeg">
+    </audio>
 
     <!-- 背景漂浮小气泡 -->
     <div class="decorations" id="decorations"></div>
@@ -657,7 +655,8 @@
         bgMusic.addEventListener('play', markMusicPlaying);
         bgMusic.addEventListener('pause', markMusicPaused);
         bgMusic.addEventListener('error', () => {
-            console.log('背景音乐加载失败，请确认 mp3 文件和 index.html 在同一文件夹，且文件名完全一致。');
+            const err = bgMusic.error;
+            console.log('背景音乐加载失败', err && err.code, '请确认音频文件和 index.html 在同一文件夹，且文件名完全一致。');
         });
 
         function toggleMusic(event) {
@@ -668,7 +667,9 @@
             if (isPlaying) {
                 stopMusic();
             } else {
-                startMusic().catch(() => {});
+                startMusic().catch((error) => {
+                    console.log('播放被拦截', error && error.name, error && error.message);
+                });
             }
         }
 
