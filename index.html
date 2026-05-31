@@ -138,7 +138,7 @@
         .gift-box.open {
             pointer-events: none;
             transform: scale(0.72) translateY(24px);
-            transition: transform 0.9s ease-in-out, opacity 0.9s;
+            transition: transform 1.25s ease-in-out, opacity 1.25s;
             opacity: 0;
         }
         .box-lid {
@@ -150,7 +150,7 @@
             top: 0;
             left: -5px;
             z-index: 5;
-            transition: transform 0.5s ease-in-out, opacity 0.5s;
+            transition: transform 0.8s ease-in-out, opacity 0.8s;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         .box-lid::after {
@@ -190,7 +190,7 @@
             position: absolute;
             bottom: 0;
             z-index: 4;
-            transition: transform 0.5s ease-in-out, opacity 0.5s;
+            transition: transform 0.8s ease-in-out, opacity 0.8s;
             box-shadow: 0 8px 15px rgba(0,0,0,0.1);
         }
         .box-body::after {
@@ -591,7 +591,7 @@
             <div class="truth-message">
                 <strong>这个网页没有什么大道理，</strong><br>
                 就是想把今天变得轻松一点。<br>
-                从认识你开始，对你说过最多次的话，<br>
+                从认识你开始，最常对你说的话，<br>
                 就是希望你天天开心。<br><br>
                 有时候状态没那么满也没关系，<br>
                 不用每一天都特别厉害。<br>
@@ -1119,7 +1119,7 @@
                 setTimeout(startTextFirework, 650);
                 revealWithTransition(surpriseCard);
                 startTypewriter();
-            }, 500);
+            }, 1050);
         }
 
         giftBox.addEventListener('click', (event) => {
